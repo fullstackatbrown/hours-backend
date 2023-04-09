@@ -25,7 +25,8 @@ const (
 type Profile struct {
 	DisplayName string `json:"displayName" mapstructure:"displayName" firebase:"displayName"`
 	Email       string `json:"email" mapstructure:"email" firebase:"email"`
-	PhoneNumber string `json:"phoneNumber,omitempty" mapstructure:"phoneNumber" firebase:"displayName"`
+	PhoneNumber string `json:"phoneNumber,omitempty" mapstructure:"phoneNumber" firebase:"phoneNumber"`
+	PhoneCountryCode string `json:"phoneCountryCode,omitempty" mapstructure:"phoneCountryCode" firebase:"phoneCountryCode"`
 	PhotoURL    string `json:"photoUrl,omitempty" mapstructure:"photoUrl" firebase:"photoUrl"`
 	IsAdmin     bool   `json:"isAdmin,omitempty" mapstructure:"isAdmin" firebase:"isAdmin"`
 	Pronouns    string `json:"pronouns,omitempty" mapstructure:"pronouns" firebase:"pronouns"`
@@ -67,6 +68,8 @@ type UpdateUserRequest struct {
 	DisplayName string `json:"displayName"`
 	Pronouns    string `json:"pronouns"`
 	MeetingLink string `json:"meetingLink"`
+	PhoneNumber string `json:"phoneNumber"`
+	PhoneCountryCode string `json:"phoneCountryCode"`
 }
 
 // MakeAdminByEmailRequest is the parameter struct for the MakeAdminByEmail function.

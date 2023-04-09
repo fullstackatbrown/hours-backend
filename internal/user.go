@@ -3,7 +3,7 @@ package repository
 import (
 	"cloud.google.com/go/firestore"
 	"fmt"
-	// "time"
+	"time"
 	"github.com/golang/glog"
 	"github.com/google/uuid"
 	"github.com/mitchellh/mapstructure"
@@ -16,8 +16,8 @@ import (
 	"signmeup/internal/qerrors"
 	"strings"
 	"github.com/ttacon/libphonenumber"
-	twilioApi "github.com/twilio/twilio-go/rest/api/v2010"
 	firebaseAuth "firebase.google.com/go/auth"
+	twilioApi "github.com/twilio/twilio-go/rest/api/v2010"
 	"signmeup/internal/twilio"
 )
 
@@ -202,10 +202,6 @@ func (fr *FirebaseRepository) UpdateUser(r *models.UpdateUserRequest) error {
 			Path:  "phoneNumber",
 			Value: r.PhoneNumber,
 		},
-		{
-			Path:  "phoneCountryCode",
-			Value: r.PhoneCountryCode,
-		},
 	})
 
 	return err
@@ -262,6 +258,7 @@ func (fr *FirebaseRepository) List() ([]*models.User, error) {
 
 func (fr *FirebaseRepository) AddNotification(userID string, notification models.Notification) error {
 	notification.ID = uuid.New().String()
+
 	_, err := fr.firestoreClient.Collection(models.FirestoreUserProfilesCollection).Doc(userID).Update(firebase.Context, []firestore.Update{
 		{
 			Path:  "notifications",
@@ -280,36 +277,30 @@ func (fr *FirebaseRepository) AddNotification(userID string, notification models
 
 	// TODO: Add Idempotency
 	// Check if the latest notification for the same class was sent more than 10 seconds ago
-	// if len(userProfile.Notifications) > 0 {
-	// 	lastNotification := userProfile.Notifications[len(userProfile.Notifications)-1]
-	// 	if time.Since(lastNotification.Timestamp).Seconds() < 10 {
-	// 		return nil
-	// 	}
-	// }
+	if len(userProfile.Notifications) > 0 {
+		lastNotification := userProfile.Notifications[len(userProfile.Notifications)-1]
+		if time.Since(lastNotification.Timestamp).Seconds() < 10 {
+			return nil
+		}
+	}
 
 	// If so then send a SMS Message
 	phoneNumber := userProfile.PhoneNumber
-	phoneCountryCode := strings.ToUpper(userProfile.PhoneCountryCode);
+	fmt.Println(phoneNumber);
 	if (phoneNumber != ""){
-		fmt.Println("Phone Number: " + phoneNumber);
-		fmt.Println("Phone Country Code: " + phoneCountryCode);
-		parsedPhoneNumber, err := libphonenumber.Parse(phoneNumber, phoneCountryCode)
+		parsedPhoneNumber, err := libphonenumber.Parse(phoneNumber, "")
 		if err != nil {
 			return err
 		}
-
-		fmt.Println("Parsed: " + parsedPhoneNumber.String());
+		fmt.Println(parsedPhoneNumber);
 
 		formattedPhoneNumber := libphonenumber.Format(parsedPhoneNumber, libphonenumber.E164)
-		fmt.Println("Formatted: " + formattedPhoneNumber);
-
-		messageBody := fmt.Sprintf("%s:\n%s \nMessage sent at %s",notification.Body, notification.Title, notification.Timestamp.Format("2006-01-02 15:04:05"))
-		fmt.Println("Message: " + messageBody);
+		fmt.Println(formattedPhoneNumber);
 
 		params := &twilioApi.CreateMessageParams{}
 		params.SetTo(formattedPhoneNumber)
 		params.SetFrom(twilio.TwilioPhoneNumber)
-		params.SetBody(messageBody)
+		params.SetBody(notification.Title)
 
 		_, err = twilio.TwilioClient.Api.CreateMessage(params)
 	}
